@@ -1,0 +1,111 @@
+@page "{id:int}"
+@model ClaimHub.Admin.Pages.PolicyHolders.DetailsModel
+@{
+    ViewData["Title"] = Model.Holder.FullName;
+    var holder = Model.Holder;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">@holder.FullName</h1>
+    <div>
+        <a asp-page="Edit" asp-route-id="@holder.Id" class="btn btn-primary btn-sm">Edit</a>
+        <a asp-page="Index" class="btn btn-outline-secondary btn-sm">Back to list</a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">Contact</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-4">E-mail</dt><dd class="col-sm-8">@holder.Email</dd>
+                <dt class="col-sm-4">Phone</dt><dd class="col-sm-8">@(holder.Phone ?? "-")</dd>
+                <dt class="col-sm-4">Address</dt><dd class="col-sm-8">@holder.Street, @holder.PostalCode @holder.City</dd>
+                <dt class="col-sm-4">Born</dt><dd class="col-sm-8">@Ui.Date(holder.DateOfBirth)</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">Account</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-4">Customer since</dt><dd class="col-sm-8">@Ui.Date(holder.CustomerSince)</dd>
+                <dt class="col-sm-4">Broker</dt><dd class="col-sm-8">@(holder.Broker?.Name ?? "Direct")</dd>
+                <dt class="col-sm-4">VIP</dt><dd class="col-sm-8">@(holder.IsVip ? "Yes" : "No")</dd>
+                <dt class="col-sm-4">Credit limit</dt><dd class="col-sm-8">@Ui.Money(holder.CreditLimit)</dd>
+                <dt class="col-sm-4">Claims</dt><dd class="col-sm-8">@Model.ClaimCount (@Model.Overview.OpenClaimCount open)</dd>
+                <dt class="col-sm-4">Standing</dt><dd class="col-sm-8">@Model.Overview.Tier, @Model.Overview.YearsAsCustomer years as customer</dd>
+                <dt class="col-sm-4">Outstanding</dt>
+                <dd class="col-sm-8">
+                    @Ui.Money(Model.Overview.TotalOutstanding)
+                    @if (Model.Overview.IsOverCreditLimit)
+                    {
+                        <span class="badge text-bg-danger">Over credit limit</span>
+                    }
+                </dd>
+                <dt class="col-sm-4">Next expiry</dt><dd class="col-sm-8">@(Model.Overview.NextExpiry.HasValue ? Ui.Date(Model.Overview.NextExpiry) : "-")</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+
+@if (Model.Overview.Notes.Count > 0)
+{
+    <div class="alert alert-info">
+        <ul class="mb-0">
+            @foreach (var note in Model.Overview.Notes)
+            {
+                <li>@note</li>
+            }
+        </ul>
+    </div>
+}
+
+<h2 class="h5">Policies</h2>
+<table class="table table-sm table-hover align-middle">
+    <thead>
+        <tr><th>Policy</th><th>Product</th><th>Status</th><th>Term</th><th class="text-end">Annual premium</th><th class="text-end">Claims</th><th class="text-end">Paid</th><th class="text-end">Open invoices</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var policy in Model.Overview.Policies.OrderByDescending(p => p.StartDate))
+        {
+            <tr>
+                <td>@policy.PolicyNumber</td>
+                <td>@policy.ProductType</td>
+                <td><span class="badge @Ui.PolicyBadge(policy.Status)">@policy.Status</span></td>
+                <td>@Ui.Date(policy.StartDate) - @Ui.Date(policy.EndDate)</td>
+                <td class="text-end">@Ui.Money(policy.AnnualPremium)</td>
+                <td class="text-end">@policy.ClaimCount</td>
+                <td class="text-end">@Ui.Money(policy.PaidClaims)</td>
+                <td class="text-end">@Ui.Money(policy.OutstandingInvoices)</td>
+                <td class="text-end"><a asp-page="/Policies/Details" asp-route-id="@policy.PolicyId" class="btn btn-sm btn-outline-primary">Open</a></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h2 class="h5 mt-4">Account statement</h2>
+<p class="small text-muted">
+    Invoiced @Ui.Money(Model.Statement.TotalInvoiced), credited @Ui.Money(Model.Statement.TotalCredited),
+    paid @Ui.Money(Model.Statement.TotalPaid). Balance @Ui.Money(Model.Statement.Balance)@(Model.Statement.IsSettled ? " (settled)" : "").
+</p>
+<table class="table table-sm align-middle">
+    <thead>
+        <tr><th>Date</th><th>Type</th><th>Reference</th><th>Policy</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Balance</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var entry in Model.Statement.Entries)
+        {
+            <tr>
+                <td>@Ui.Date(entry.Date)</td>
+                <td>@entry.Kind</td>
+                <td>@entry.Reference</td>
+                <td>@entry.PolicyNumber</td>
+                <td class="text-end">@(entry.Debit == 0m ? "" : Ui.Money(entry.Debit))</td>
+                <td class="text-end">@(entry.Credit == 0m ? "" : Ui.Money(entry.Credit))</td>
+                <td class="text-end">@Ui.Money(entry.RunningBalance)</td>
+            </tr>
+        }
+    </tbody>
+</table>
+

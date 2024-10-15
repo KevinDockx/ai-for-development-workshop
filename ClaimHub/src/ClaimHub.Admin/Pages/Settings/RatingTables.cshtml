@@ -1,0 +1,80 @@
+@page
+@model ClaimHub.Admin.Pages.Settings.RatingTablesModel
+@{
+    ViewData["Title"] = "Rating tables";
+}
+
+<h1 class="h3 mb-1">Rating tables</h1>
+<p class="text-muted">Multipliers that override the built-in rating factors when a matching row is valid.</p>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+        <select asp-for="Product" class="form-select" asp-items="Html.GetEnumSelectList<ProductType>()">
+            <option value="">All products</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+    </div>
+</form>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr><th>Product</th><th>Factor</th><th>Key</th><th>Multiplier</th><th>Valid from</th><th>Valid to</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var entry in Model.Entries)
+        {
+            @if (Model.EditId == entry.Id)
+            {
+                <tr class="table-warning">
+                    <td>@entry.ProductType</td>
+                    <td>@entry.Factor</td>
+                    <td>@entry.Key</td>
+                    <td colspan="4">
+                        <form method="post" asp-page-handler="Save" asp-route-id="@entry.Id" asp-route-product="@Model.Product" class="row g-2 align-items-start">
+                            <div class="col-md-3">
+                                <input asp-for="Input.Multiplier" class="form-control form-control-sm" />
+                                <span asp-validation-for="Input.Multiplier" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <input asp-for="Input.ValidFrom" type="date" class="form-control form-control-sm" />
+                                <span asp-validation-for="Input.ValidFrom" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <input asp-for="Input.ValidTo" type="date" class="form-control form-control-sm" />
+                                <span asp-validation-for="Input.ValidTo" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-3 table-actions">
+                                <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                <a asp-page="RatingTables" asp-route-product="@Model.Product" class="btn btn-sm btn-outline-secondary">Cancel</a>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                <tr>
+                    <td>@entry.ProductType</td>
+                    <td>@entry.Factor</td>
+                    <td>@entry.Key</td>
+                    <td>@entry.Multiplier.ToString("0.00##")</td>
+                    <td>@Ui.Date(entry.ValidFrom)</td>
+                    <td>@Ui.Date(entry.ValidTo)</td>
+                    <td class="text-end">
+                        <a asp-page="RatingTables" asp-route-product="@Model.Product" asp-route-editId="@entry.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    </td>
+                </tr>
+            }
+        }
+        @if (!Model.Entries.Any())
+        {
+            <tr><td colspan="7" class="text-center text-muted">No rating rows found.</td></tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

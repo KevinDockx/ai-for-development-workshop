@@ -1,0 +1,28 @@
+@model PageInfo
+@{
+    string LinkTo(int page)
+    {
+        var pairs = Context.Request.Query
+            .Where(q => q.Key != "p")
+            .Select(q => $"{Uri.EscapeDataString(q.Key)}={Uri.EscapeDataString(q.Value.ToString())}")
+            .Append($"p={page}");
+        return "?" + string.Join("&", pairs);
+    }
+}
+
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Pages">
+        <ul class="pagination pagination-sm justify-content-end">
+            <li class="page-item @(Model.Page == 1 ? "disabled" : "")">
+                <a class="page-link" href="@LinkTo(Model.Page - 1)">Previous</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Page @Model.Page of @Model.TotalPages (@Model.Total records)</span>
+            </li>
+            <li class="page-item @(Model.Page == Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@LinkTo(Model.Page + 1)">Next</a>
+            </li>
+        </ul>
+    </nav>
+}

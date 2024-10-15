@@ -1,0 +1,194 @@
+@page "{id:int}"
+@model ClaimHub.Admin.Pages.Policies.DetailsModel
+@{
+    var policy = Model.Policy;
+    ViewData["Title"] = policy.PolicyNumber;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">
+        @policy.PolicyNumber
+        <span class="badge @Ui.PolicyBadge(policy.Status) fs-6 align-middle">@policy.Status</span>
+    </h1>
+    <div>
+        <a asp-page="Recalculate" asp-route-id="@policy.Id" class="btn btn-primary btn-sm">Recalculate premium</a>
+        <a asp-page="Index" class="btn btn-outline-secondary btn-sm">Back to list</a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">Policy</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-5">Holder</dt>
+                <dd class="col-sm-7"><a asp-page="/PolicyHolders/Details" asp-route-id="@policy.PolicyHolderId">@policy.PolicyHolder?.FullName</a></dd>
+                <dt class="col-sm-5">Broker</dt><dd class="col-sm-7">@(policy.Broker?.Name ?? "Direct")</dd>
+                <dt class="col-sm-5">Product</dt><dd class="col-sm-7">@policy.ProductType</dd>
+                <dt class="col-sm-5">Term</dt><dd class="col-sm-7">@Ui.Date(policy.StartDate) - @Ui.Date(policy.EndDate)</dd>
+                <dt class="col-sm-5">Payment</dt><dd class="col-sm-7">@policy.PaymentFrequency</dd>
+                @if (policy.CancelledOn.HasValue)
+                {
+                    <dt class="col-sm-5">Cancelled on</dt>
+                    <dd class="col-sm-7">@Ui.Date(policy.CancelledOn) (@policy.CancellationReason)</dd>
+                }
+            </dl>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">Premium</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-5">Annual premium</dt><dd class="col-sm-7">@Ui.Money(policy.AnnualPremium)</dd>
+                <dt class="col-sm-5">Of which tax</dt><dd class="col-sm-7">@Ui.Money(policy.TaxAmount)</dd>
+                <dt class="col-sm-5">Discount</dt><dd class="col-sm-7">@policy.DiscountPercent.ToString("0.##")%</dd>
+                <dt class="col-sm-5">Endorsements</dt><dd class="col-sm-7">@policy.Endorsements.Count</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+
+<h2 class="h5">Coverages</h2>
+<table class="table table-sm align-middle mb-4">
+    <thead>
+        <tr><th>Coverage</th><th class="text-end">Limit</th><th class="text-end">Deductible</th><th class="text-end">Premium</th><th class="text-end">Paid in term</th><th class="text-end">Used</th><th>Active</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var coverage in policy.Coverages.OrderBy(c => c.Type))
+        {
+            var usage = Model.CoverageSummary.Coverages.FirstOrDefault(c => c.CoverageId == coverage.Id);
+            <tr>
+                <td>@coverage.Type</td>
+                <td class="text-end">@Ui.Money(coverage.Limit)</td>
+                <td class="text-end">@Ui.Money(coverage.Deductible)</td>
+                <td class="text-end">@Ui.Money(coverage.Premium)</td>
+                <td class="text-end">@Ui.Money(usage?.PaidInTerm ?? 0m)</td>
+                <td class="text-end">
+                    @(usage?.UsedPercentage.ToString("0.#") ?? "0")%
+                    @if (usage is { IsNearLimit: true })
+                    {
+                        <span class="badge text-bg-warning">Near limit</span>
+                    }
+                </td>
+                <td>@(coverage.IsActive ? "Yes" : "No")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+@if (Model.CoverageSummary.HasInvalidTerms)
+{
+    <div class="alert alert-warning">One or more coverages have deductible or limit terms that do not add up.</div>
+}
+
+<h2 class="h5">Insured risk</h2>
+<div class="card card-body mb-4">
+    @if (policy.HomeRisk is { } home)
+    {
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Address</dt><dd class="col-sm-9">@home.Street, @home.PostalCode @home.City (zone @home.PostcodeZone)</dd>
+            <dt class="col-sm-3">Building value</dt><dd class="col-sm-9">@Ui.Money(home.BuildingValue)</dd>
+            <dt class="col-sm-3">Contents value</dt><dd class="col-sm-9">@Ui.Money(home.ContentsValue)</dd>
+            <dt class="col-sm-3">Built</dt><dd class="col-sm-9">@home.ConstructionYear</dd>
+        </dl>
+    }
+    else if (policy.MotorRisk is { } motor)
+    {
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Vehicle</dt><dd class="col-sm-9">@motor.Make @motor.Model (@motor.LicensePlate)</dd>
+            <dt class="col-sm-3">Value</dt><dd class="col-sm-9">@Ui.Money(motor.VehicleValue)</dd>
+            <dt class="col-sm-3">Power</dt><dd class="col-sm-9">@motor.PowerKw kW</dd>
+            <dt class="col-sm-3">Claim-free years</dt><dd class="col-sm-9">@motor.ClaimFreeYears</dd>
+        </dl>
+    }
+    else if (policy.TravelRisk is { } travel)
+    {
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Scope</dt><dd class="col-sm-9">@travel.Scope</dd>
+            <dt class="col-sm-3">Party</dt><dd class="col-sm-9">@travel.PartyType</dd>
+        </dl>
+    }
+    else
+    {
+        <span class="text-muted">No risk details recorded.</span>
+    }
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <h2 class="h5">Invoices</h2>
+        <table class="table table-sm">
+            <thead><tr><th>Invoice</th><th>Due</th><th class="text-end">Amount</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var invoice in policy.Invoices.OrderBy(i => i.DueDate))
+                {
+                    <tr>
+                        <td>@invoice.InvoiceNumber</td>
+                        <td>@Ui.Date(invoice.DueDate)</td>
+                        <td class="text-end">@Ui.Money(invoice.Amount)</td>
+                        <td><span class="badge @Ui.InvoiceBadge(invoice.Status)">@invoice.Status</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-lg-6">
+        <h2 class="h5">Claims</h2>
+        <table class="table table-sm">
+            <thead><tr><th>Claim</th><th>Date of loss</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var claim in policy.Claims.Where(c => !c.IsDeleted).OrderByDescending(c => c.DateOfLoss))
+                {
+                    <tr>
+                        <td><a asp-page="/Claims/Details" asp-route-id="@claim.Id">@claim.ClaimNumber</a></td>
+                        <td>@Ui.Date(claim.DateOfLoss)</td>
+                        <td><span class="badge @Ui.ClaimBadge(claim.Status)">@claim.Status</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h2 class="h5 mt-4">Renewal outlook</h2>
+<div class="card mb-3">
+    <div class="card-body">
+        <p class="mb-2">
+            Advice: <strong>@Model.Outlook.Advice</strong>.
+            @Model.Outlook.ClaimCount claim(s) (@Model.Outlook.OpenClaimCount open) cost @Ui.Money(Model.Outlook.ClaimCost),
+            a loss ratio of @Model.Outlook.LossRatioPercent.ToString("0.#")% on @Ui.Money(Model.Outlook.AnnualPremium).
+        </p>
+        <p class="small text-muted mb-2">
+            Renewal window @(Model.Outlook.Window.IsOpen ? "is open" : "opens " + Ui.Date(Model.Outlook.Window.OpensOn)),
+            @Model.Outlook.Window.DaysUntilEnd day(s) until the policy ends.
+        </p>
+        @if (Model.Outlook.HasFindings)
+        {
+            <ul class="mb-0">
+                @foreach (var finding in Model.Outlook.Findings)
+                {
+                    <li><code>@finding.Code</code> @finding.Message</li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+<h2 class="h5 mt-4">Recent audit entries</h2>
+<table class="table table-sm">
+    <thead><tr><th>When</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
+    <tbody>
+        @foreach (var entry in Model.AuditTrail)
+        {
+            <tr>
+                <td>@entry.Timestamp.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@entry.UserName</td>
+                <td>@entry.Action</td>
+                <td>@entry.Details</td>
+            </tr>
+        }
+        @if (Model.AuditTrail.Count == 0)
+        {
+            <tr><td colspan="4" class="text-muted">No audit entries recorded.</td></tr>
+        }
+    </tbody>
+</table>

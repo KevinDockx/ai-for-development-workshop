@@ -1,0 +1,58 @@
+@page
+@model ClaimHub.Admin.Pages.Billing.DunningModel
+@{
+    ViewData["Title"] = "Dunning";
+}
+
+<h1 class="h3 mb-1">Dunning overview</h1>
+<p class="text-muted">Unpaid invoices past their due date as of @Ui.Date(Model.Today). Reminders go out 15 days after the due date, suspension follows after 45 days.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card summary-card attention"><div class="card-body">
+            <div class="text-muted small">Total outstanding</div>
+            <div class="summary-value">@Ui.Money(Model.TotalOutstanding)</div>
+            <div class="small text-muted">@Model.Overview.OpenInvoiceCount open, @Model.Overview.PastDueCount past due</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card summary-card"><div class="card-body">
+            <div class="text-muted small">Reminders due</div>
+            <div class="summary-value">@Model.ReminderCount</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card summary-card"><div class="card-body">
+            <div class="text-muted small">Suspensions due</div>
+            <div class="summary-value">@Model.SuspensionCount</div>
+        </div></div>
+    </div>
+</div>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr><th>Invoice</th><th>Policy holder</th><th>Policy</th><th>Due</th><th class="text-end">Days overdue</th><th class="text-end">Outstanding</th><th>Stage</th><th>Next step</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var row in Model.Rows)
+        {
+            var next = Model.Projections.TryGetValue(row.Invoice.Id, out var projection) ? projection.NextMilestone : null;
+            <tr>
+                <td>@row.Invoice.InvoiceNumber</td>
+                <td>@row.Invoice.Policy?.PolicyHolder?.FullName</td>
+                <td><a asp-page="/Policies/Details" asp-route-id="@row.Invoice.PolicyId">@row.Invoice.Policy?.PolicyNumber</a></td>
+                <td>@Ui.Date(row.Invoice.DueDate)</td>
+                <td class="text-end">@row.DaysOverdue</td>
+                <td class="text-end">@Ui.Money(row.Outstanding)</td>
+                <td>
+                    <span class="badge @(row.Stage == "Suspension due" ? "text-bg-danger" : row.Stage == "Reminder due" ? "text-bg-warning" : "text-bg-secondary")">@row.Stage</span>
+                </td>
+                <td>@(next is null ? "None left" : $"{next.Name} on {Ui.Date(next.Date)}")</td>
+            </tr>
+        }
+        @if (!Model.Rows.Any())
+        {
+            <tr><td colspan="8" class="text-center text-muted">No overdue invoices.</td></tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,81 @@
+@page
+@model ClaimHub.Admin.Pages.Claims.IndexModel
+@{
+    ViewData["Title"] = "Claims";
+}
+
+<h1 class="h3 mb-3">Claims</h1>
+
+<div class="card mb-3">
+    <div class="card-header">Handler workload</div>
+    <table class="table table-sm mb-0">
+        <thead><tr><th>Handler</th><th>Level</th><th class="text-end">Open</th><th class="text-end">Escalated</th><th class="text-end">Assessed exposure</th><th class="text-end">Oldest (days)</th></tr></thead>
+        <tbody>
+            @foreach (var handler in Model.Workload.Handlers)
+            {
+                <tr>
+                    <td>@handler.DisplayName</td>
+                    <td>@(handler.IsSenior ? "Senior" : "Handler")</td>
+                    <td class="text-end">@handler.OpenClaims</td>
+                    <td class="text-end">@handler.EscalatedClaims</td>
+                    <td class="text-end">@Ui.Money(handler.AssessedExposure)</td>
+                    <td class="text-end">@handler.OldestOpenDays</td>
+                </tr>
+            }
+            <tr class="table-light">
+                <td colspan="2">Not assigned</td>
+                <td class="text-end">@Model.Workload.UnassignedOpenClaims</td>
+                <td></td>
+                <td></td>
+                <td class="text-end">@Model.Workload.OldestUnassignedDays</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <input asp-for="Q" class="form-control" placeholder="Claim number" />
+    </div>
+    <div class="col-md-3">
+        <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<ClaimStatus>()">
+            <option value="">All statuses</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<table class="table table-striped table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Claim</th><th>Policy</th><th>Policy holder</th><th>Date of loss</th>
+            <th class="text-end">Assessed</th><th>Status</th><th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var claim in Model.Claims)
+        {
+            <tr>
+                <td>@claim.ClaimNumber</td>
+                <td>@claim.Policy!.PolicyNumber</td>
+                <td>@claim.Policy.PolicyHolder!.FullName</td>
+                <td>@Ui.Date(claim.DateOfLoss)</td>
+                <td class="text-end">@Ui.Money(claim.AssessedAmount)</td>
+                <td><span class="badge @Ui.ClaimBadge(claim.Status)">@claim.Status</span></td>
+                <td class="table-actions text-end">
+                    <a asp-page="Details" asp-route-id="@claim.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                    <a asp-page="Delete" asp-route-id="@claim.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                </td>
+            </tr>
+        }
+        @if (!Model.Claims.Any())
+        {
+            <tr><td colspan="7" class="text-center text-muted">No claims match the filter.</td></tr>
+        }
+    </tbody>
+</table>
+
+<partial name="_Pager" model="Model.Pager" />

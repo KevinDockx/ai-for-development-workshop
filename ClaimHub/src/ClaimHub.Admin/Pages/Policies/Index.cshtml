@@ -1,0 +1,56 @@
+@page
+@model ClaimHub.Admin.Pages.Policies.IndexModel
+@{
+    ViewData["Title"] = "Policies";
+}
+
+<h1 class="h3 mb-3">Policies</h1>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <input asp-for="Q" class="form-control" placeholder="Policy number or holder surname" />
+    </div>
+    <div class="col-md-2">
+        <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<PolicyStatus>()">
+            <option value="">All statuses</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select asp-for="Product" class="form-select" asp-items="Html.GetEnumSelectList<ProductType>()">
+            <option value="">All products</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<table class="table table-striped table-hover align-middle">
+    <thead>
+        <tr><th>Policy</th><th>Holder</th><th>Product</th><th>Status</th><th>Term</th><th class="text-end">Annual premium</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var policy in Model.Policies)
+        {
+            <tr>
+                <td>@policy.PolicyNumber</td>
+                <td>@policy.PolicyHolder?.FullName</td>
+                <td>@policy.ProductType</td>
+                <td><span class="badge @Ui.PolicyBadge(policy.Status)">@policy.Status</span></td>
+                <td>@Ui.Date(policy.StartDate) - @Ui.Date(policy.EndDate)</td>
+                <td class="text-end">@Ui.Money(policy.AnnualPremium)</td>
+                <td class="table-actions text-end">
+                    <a asp-page="Details" asp-route-id="@policy.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                    <a asp-page="Recalculate" asp-route-id="@policy.Id" class="btn btn-sm btn-outline-secondary">Recalculate</a>
+                </td>
+            </tr>
+        }
+        @if (!Model.Policies.Any())
+        {
+            <tr><td colspan="7" class="text-center text-muted">No policies match the filter.</td></tr>
+        }
+    </tbody>
+</table>
+
+<partial name="_Pager" model="Model.Pager" />

@@ -1,0 +1,87 @@
+@page
+@model ClaimHub.Admin.Pages.Billing.InvoicesModel
+@{
+    ViewData["Title"] = "Invoices";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Invoices</h1>
+    <a asp-page="Dunning" class="btn btn-outline-danger btn-sm">Dunning overview</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">Receivables aging as of @Ui.Date(Model.Aging.AsOf)</div>
+    <div class="card-body">
+        <p class="mb-2">
+            @Ui.Money(Model.Aging.TotalOutstanding) outstanding on @Model.Aging.OpenInvoiceCount open invoices,
+            @Model.Aging.PastDueShare.ToString("0.#")% of it past due.
+        </p>
+        <table class="table table-sm mb-3">
+            <thead><tr><th>Age</th><th class="text-end">Invoices</th><th class="text-end">Outstanding</th></tr></thead>
+            <tbody>
+                @foreach (var bucket in Model.Aging.Buckets)
+                {
+                    <tr><td>@bucket.Bucket</td><td class="text-end">@bucket.InvoiceCount</td><td class="text-end">@Ui.Money(bucket.Outstanding)</td></tr>
+                }
+            </tbody>
+        </table>
+        @if (Model.Aging.TopDebtors.Count > 0)
+        {
+            <div class="small text-muted mb-1">Largest past-due balances</div>
+            <ul class="mb-0">
+                @foreach (var debtor in Model.Aging.TopDebtors)
+                {
+                    <li>
+                        <a asp-page="/Policies/Details" asp-route-id="@debtor.PolicyId">@debtor.PolicyNumber</a>:
+                        @Ui.Money(debtor.Outstanding) on @debtor.InvoiceCount invoice(s), oldest @debtor.OldestDaysPastDue days past due
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-4">
+        <input asp-for="Q" class="form-control" placeholder="Invoice or policy number" />
+    </div>
+    <div class="col-md-3">
+        <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<InvoiceStatus>()">
+            <option value="">All statuses</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-page="Invoices" class="btn btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<table class="table table-striped table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Invoice</th><th>Policy</th><th>Installment</th><th>Issued</th><th>Due</th>
+            <th class="text-end">Amount</th><th class="text-end">Outstanding</th><th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var invoice in Model.Invoices)
+        {
+            <tr>
+                <td>@invoice.InvoiceNumber</td>
+                <td><a asp-page="/Policies/Details" asp-route-id="@invoice.PolicyId">@invoice.Policy?.PolicyNumber</a></td>
+                <td>@invoice.InstallmentNumber / @invoice.InstallmentCount</td>
+                <td>@Ui.Date(invoice.IssuedOn)</td>
+                <td>@Ui.Date(invoice.DueDate)</td>
+                <td class="text-end">@Ui.Money(invoice.Amount)</td>
+                <td class="text-end">@Ui.Money(invoice.OutstandingAmount)</td>
+                <td><span class="badge @Ui.InvoiceBadge(invoice.Status)">@invoice.Status</span></td>
+            </tr>
+        }
+        @if (!Model.Invoices.Any())
+        {
+            <tr><td colspan="8" class="text-center text-muted">No invoices match the filter.</td></tr>
+        }
+    </tbody>
+</table>
+
+<partial name="_Pager" model="Model.Pager" />

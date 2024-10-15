@@ -1,0 +1,150 @@
+@page "{id:int}"
+@model ClaimHub.Admin.Pages.Claims.DetailsModel
+@{
+    var claim = Model.Claim;
+    ViewData["Title"] = claim.ClaimNumber;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">
+        @claim.ClaimNumber
+        <span class="badge @Ui.ClaimBadge(claim.Status) fs-6 align-middle">@claim.Status</span>
+    </h1>
+    <div>
+        <a asp-page="Delete" asp-route-id="@claim.Id" class="btn btn-outline-danger btn-sm">Delete</a>
+        <a asp-page="Index" class="btn btn-outline-secondary btn-sm">Back to list</a>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">Claim</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-5">Policy</dt>
+                <dd class="col-sm-7"><a asp-page="/Policies/Details" asp-route-id="@claim.PolicyId">@claim.Policy?.PolicyNumber</a></dd>
+                <dt class="col-sm-5">Policy holder</dt>
+                <dd class="col-sm-7">@claim.Policy?.PolicyHolder?.FullName</dd>
+                <dt class="col-sm-5">Coverage</dt><dd class="col-sm-7">@(claim.Coverage?.Type.ToString() ?? "-")</dd>
+                <dt class="col-sm-5">Date of loss</dt><dd class="col-sm-7">@Ui.Date(claim.DateOfLoss)</dd>
+                <dt class="col-sm-5">Reported</dt>
+                <dd class="col-sm-7">@Ui.When(claim.ReportedAt) @(claim.IsLateReported ? "(late)" : "")</dd>
+                <dt class="col-sm-5">Handler</dt><dd class="col-sm-7">@(claim.AssignedHandler?.DisplayName ?? "Unassigned")</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">Amounts</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-5">Assessed</dt><dd class="col-sm-7">@Ui.Money(claim.AssessedAmount)</dd>
+                <dt class="col-sm-5">Approved</dt><dd class="col-sm-7">@Ui.Money(claim.ApprovedAmount)</dd>
+                <dt class="col-sm-5">Paid</dt><dd class="col-sm-7">@Ui.Money(claim.PaidAmount)</dd>
+                <dt class="col-sm-5">Paid at</dt><dd class="col-sm-7">@Ui.When(claim.PaidAt)</dd>
+                <dt class="col-sm-5">Documents</dt><dd class="col-sm-7">@claim.Documents.Count</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+
+<h2 class="h5">Description</h2>
+<div class="claim-description mb-4">@Html.Raw(claim.Description)</div>
+
+@if (Model.Decision is { } decision)
+{
+    <div class="card mb-4">
+        <div class="card-header">Decision summary</div>
+        <dl class="row card-body mb-0">
+            <dt class="col-sm-3">Eligible</dt><dd class="col-sm-9">@(decision.Eligibility.IsEligible ? "Yes" : "No")</dd>
+            <dt class="col-sm-3">Fraud risk</dt><dd class="col-sm-9">@decision.Fraud.RiskLevel (score @decision.Fraud.Score)</dd>
+            <dt class="col-sm-3">SLA deadline</dt><dd class="col-sm-9">@Ui.Date(decision.Sla.Deadline) (@decision.Sla.ElapsedDays of @decision.Sla.AllowedDays days)</dd>
+            <dt class="col-sm-3">Attention</dt>
+            <dd class="col-sm-9">
+                @if (decision.Attention.Count == 0)
+                {
+                    <span class="text-muted">Nothing needs attention.</span>
+                }
+                else
+                {
+                    <ul class="mb-0">
+                        @foreach (var item in decision.Attention)
+                        {
+                            <li>@item.Level: @item.Message</li>
+                        }
+                    </ul>
+                }
+            </dd>
+        </dl>
+    </div>
+}
+@if (Model.CanAssess && claim.Status is ClaimStatus.Reported or ClaimStatus.UnderAssessment)
+{
+    <div class="card mb-4">
+        <div class="card-header">Handling</div>
+        <div class="card-body">
+            @if (claim.Status == ClaimStatus.Reported)
+            {
+                <form method="post" asp-page-handler="StartAssessment" asp-route-id="@claim.Id">
+                    <button type="submit" class="btn btn-primary">Start assessment</button>
+                </form>
+            }
+            else
+            {
+                <form method="post" class="row g-2 align-items-start">
+                    <div class="col-md-4">
+                        <label asp-for="Amount" class="form-label"></label>
+                        <input asp-for="Amount" class="form-control" />
+                        <span asp-validation-for="Amount" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-8 d-flex gap-2 align-items-end pt-4">
+                        <button type="submit" asp-page-handler="Assess" asp-route-id="@claim.Id" class="btn btn-outline-primary">Set assessed amount</button>
+                        <button type="submit" asp-page-handler="Approve" asp-route-id="@claim.Id" class="btn btn-success">Approve</button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <h2 class="h5">Status history</h2>
+        <table class="table table-sm">
+            <thead><tr><th>When</th><th>Change</th><th>By</th><th>Note</th></tr></thead>
+            <tbody>
+                @foreach (var entry in claim.StatusHistory.OrderBy(h => h.ChangedAt))
+                {
+                    <tr>
+                        <td>@Ui.When(entry.ChangedAt)</td>
+                        <td>@entry.FromStatus &rarr; @entry.ToStatus</td>
+                        <td>@entry.ChangedBy</td>
+                        <td>@entry.Note</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-lg-5">
+        <h2 class="h5">Fraud flags</h2>
+        @if (claim.FraudFlags.Any())
+        {
+            <ul class="list-group">
+                @foreach (var flag in claim.FraudFlags)
+                {
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>@flag.Type: @flag.Details</span>
+                        <span class="badge text-bg-warning">@flag.Weight</span>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p class="text-muted">No fraud flags raised.</p>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
