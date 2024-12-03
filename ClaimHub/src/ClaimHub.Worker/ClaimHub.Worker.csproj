@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-ClaimHub.Worker-6f3981a9-be88-4e52-af9d-025019c3e9dd</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+        <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+      </ItemGroup>
+
+      <ItemGroup>
+        <ProjectReference Include="..\ClaimHub.Api\ClaimHub.Api.csproj" />
+        <ProjectReference Include="..\ClaimHub.Domain\ClaimHub.Domain.csproj" />
+        <ProjectReference Include="..\ClaimHub.Infrastructure\ClaimHub.Infrastructure.csproj" />
+      </ItemGroup>
+</Project>
