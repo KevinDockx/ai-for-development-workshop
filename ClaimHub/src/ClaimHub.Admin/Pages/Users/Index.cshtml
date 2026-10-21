@@ -1,0 +1,30 @@
+@page
+@model ClaimHub.Admin.Pages.Users.IndexModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<h1 class="h3 mb-3">Users</h1>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr><th>Name</th><th>E-mail</th><th>Active</th><th>Last sign-in</th><th>Role</th></tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+                <td>@user.DisplayName</td>
+                <td>@user.Email</td>
+                <td>@(user.IsActive ? "Yes" : "No")</td>
+                <td>@Ui.When(user.LastLoginAt)</td>
+                <td>
+                    <form method="post" asp-page-handler="ChangeRole" asp-route-id="@user.Id" class="d-flex gap-2">
+                        <select name="role" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<UserRole>().Select(i => new SelectListItem(i.Text, i.Value, i.Text == user.Role.ToString()))"></select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

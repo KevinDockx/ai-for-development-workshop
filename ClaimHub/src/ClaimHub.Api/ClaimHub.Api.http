@@ -1,0 +1,78 @@
+@baseUrl = http://localhost:5263
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkBzY2hlbGR0LmV4YW1wbGUiLCJyb2xlIjoiQWRtaW4iLCJuYW1lIjoiRGVtbyBBZG1pbiIsIm5iZiI6MTY5ODc5NjgwMCwiaWF0IjoxNjk4Nzk2ODAwLCJleHAiOjE3MDEzODg4MDAsImlzcyI6ImNsYWltaHViLWFwaSIsImF1ZCI6ImNsYWltaHViLWNsaWVudHMifQ.Nj0jPXmcCfW7VP6dKctBykkNaXXsPJe8viwZ6JNyxdo
+
+### Get a token (current route)
+POST {{baseUrl}}/api/auth/token
+Content-Type: application/json
+
+{
+  "email": "admin@scheldt.example",
+  "password": "Passw0rd!"
+}
+
+### Old login route
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Passw0rd!"
+}
+
+### Customers (old name for policyholders)
+GET {{baseUrl}}/api/customers?page=1
+Authorization: Bearer {{token}}
+
+### Policy holders
+GET {{baseUrl}}/api/PolicyHolders
+Authorization: Bearer {{token}}
+
+### Policy holder by id
+GET {{baseUrl}}/api/PolicyHolders/1
+Authorization: Bearer {{token}}
+
+### Contracts (old name for policies)
+GET {{baseUrl}}/api/contracts/1
+Authorization: Bearer {{token}}
+
+### Policies
+GET {{baseUrl}}/api/Policies?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### Quote
+POST {{baseUrl}}/api/Policies/quote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "policyHolderId": 1,
+  "productType": "Travel",
+  "startDate": "2026-07-01",
+  "paymentFrequency": "Annual",
+  "coverages": [ "Travel" ],
+  "travel": { "scope": "Europe", "partyType": "Single" }
+}
+
+### Old claims route
+GET {{baseUrl}}/api/v1/claims?status=open
+Authorization: Bearer {{token}}
+
+### Claims
+GET {{baseUrl}}/api/claims?page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+### Claim search
+GET {{baseUrl}}/api/claims/search?q=storm
+Authorization: Bearer {{token}}
+
+### Invoices (old billing route)
+GET {{baseUrl}}/api/billing/invoices
+Authorization: Bearer {{token}}
+
+### Invoices
+GET {{baseUrl}}/api/v1/billing/invoices?page=1
+Authorization: Bearer {{token}}
+
+### Export
+GET {{baseUrl}}/api/reports/export?format=csv
+Authorization: Bearer {{token}}

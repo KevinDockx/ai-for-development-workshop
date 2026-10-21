@@ -1,0 +1,50 @@
+@page
+@model ClaimHub.Admin.Pages.PolicyHolders.IndexModel
+@{
+    ViewData["Title"] = "Policy holders";
+}
+
+<h1 class="h3 mb-3">Policy holders</h1>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-6">
+        <input asp-for="Q" class="form-control" placeholder="Search by name, e-mail or city" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a asp-page="Index" class="btn btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<table class="table table-striped table-hover align-middle">
+    <thead>
+        <tr><th>Name</th><th>E-mail</th><th>City</th><th class="text-center">Policies</th><th></th></tr>
+    </thead>
+    <tbody>
+        @foreach (var holder in Model.Holders)
+        {
+            <tr>
+                <td>
+                    @holder.Name
+                    @if (holder.IsVip)
+                    {
+                        <span class="badge text-bg-warning ms-1">VIP</span>
+                    }
+                </td>
+                <td>@holder.Email</td>
+                <td>@holder.City</td>
+                <td class="text-center">@holder.PolicyCount</td>
+                <td class="table-actions text-end">
+                    <a asp-page="Details" asp-route-id="@holder.Id" class="btn btn-sm btn-outline-primary">Details</a>
+                    <a asp-page="Edit" asp-route-id="@holder.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                </td>
+            </tr>
+        }
+        @if (!Model.Holders.Any())
+        {
+            <tr><td colspan="5" class="text-center text-muted">No policy holders match the search.</td></tr>
+        }
+    </tbody>
+</table>
+
+<partial name="_Pager" model="Model.Pager" />

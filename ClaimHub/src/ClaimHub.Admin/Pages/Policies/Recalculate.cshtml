@@ -1,0 +1,69 @@
+@page "{id:int}"
+@model ClaimHub.Admin.Pages.Policies.RecalculateModel
+@{
+    var policy = Model.Policy;
+    var result = Model.Result;
+    ViewData["Title"] = "Recalculate " + policy.PolicyNumber;
+}
+
+<h1 class="h3 mb-1">Recalculate premium</h1>
+<p class="text-muted">@policy.PolicyNumber - @policy.ProductType - @policy.PolicyHolder?.FullName</p>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">Stored</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-6">Annual premium</dt><dd class="col-sm-6">@Ui.Money(policy.AnnualPremium)</dd>
+                <dt class="col-sm-6">Tax</dt><dd class="col-sm-6">@Ui.Money(policy.TaxAmount)</dd>
+                <dt class="col-sm-6">Discount</dt><dd class="col-sm-6">@policy.DiscountPercent.ToString("0.##")%</dd>
+                <dt class="col-sm-6">Payment</dt><dd class="col-sm-6">@policy.PaymentFrequency</dd>
+            </dl>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 border-primary">
+            <div class="card-header text-bg-primary">Recalculated</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-6">Base premium</dt><dd class="col-sm-6">@Ui.Money(result.BasePremium)</dd>
+                <dt class="col-sm-6">Risk factor</dt><dd class="col-sm-6">@result.RiskFactor.ToString("0.0000")</dd>
+                <dt class="col-sm-6">Discount</dt><dd class="col-sm-6">@((result.DiscountRate * 100).ToString("0.##"))%</dd>
+                <dt class="col-sm-6">Net premium</dt><dd class="col-sm-6">@Ui.Money(result.NetPremium)</dd>
+                <dt class="col-sm-6">Tax</dt><dd class="col-sm-6">@Ui.Money(result.TaxAmount)</dd>
+                <dt class="col-sm-6">Annual premium</dt><dd class="col-sm-6 fw-bold">@Ui.Money(result.AnnualPremium)</dd>
+                <dt class="col-sm-6">Per installment (@result.InstallmentCount x)</dt>
+                <dd class="col-sm-6 fw-bold">@Ui.Money(result.InstallmentAmount)</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <h2 class="h5">Rating factors</h2>
+        <table class="table table-sm">
+            <tbody>
+                @foreach (var factor in result.Factors)
+                {
+                    <tr><td>@factor.Name</td><td class="text-end">@factor.Value.ToString("0.00")</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <h2 class="h5">Premium per coverage</h2>
+        <table class="table table-sm">
+            <tbody>
+                @foreach (var coverage in result.CoveragePremiums)
+                {
+                    <tr><td>@coverage.Key</td><td class="text-end">@Ui.Money(coverage.Value)</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<form method="post">
+    <button type="submit" class="btn btn-primary">Save recalculated premium</button>
+    <a asp-page="Details" asp-route-id="@policy.Id" class="btn btn-outline-secondary">Cancel</a>
+</form>

@@ -1,0 +1,153 @@
+@page
+@model DashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="h3 mb-3">Dashboard</h1>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Policy holders</div>
+                <div class="summary-value">@Model.PolicyHolderCount</div>
+                <a asp-page="/PolicyHolders/Index" class="small">View all</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Active policies</div>
+                <div class="summary-value">@Model.ActivePolicyCount</div>
+                <a asp-page="/Policies/Index" asp-route-status="@PolicyStatus.Active" class="small">View active</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card h-100">
+            <div class="card-body">
+                <div class="text-muted small">Open claims</div>
+                <div class="summary-value">@Model.OpenClaimCount</div>
+                <a asp-page="/Claims/Index" asp-route-status="@ClaimStatus.UnderAssessment" class="small">View under assessment</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card attention h-100">
+            <div class="card-body">
+                <div class="text-muted small">Overdue invoices</div>
+                <div class="summary-value">@Model.OverdueInvoiceCount</div>
+                <span class="small text-muted">@Ui.Money(Model.OverdueAmount) outstanding</span>
+                <a asp-page="/Billing/Dunning" class="small ms-2">Dunning</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Portfolio</div>
+            <div class="card-body">
+                <p class="mb-2">
+                    @Model.Portfolio.InForceCount of @Model.Portfolio.PolicyCount policies in force (@Model.Portfolio.InForceShare.ToString("0.#")%),
+                    @Ui.Money(Model.Portfolio.TotalAnnualPremium) annual premium.
+                </p>
+                <p class="mb-2">@Model.Portfolio.ExpiringSoonCount policies expire within @Model.Portfolio.ExpiringWindowDays days.</p>
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Product</th><th class="text-end">Policies</th><th class="text-end">Average premium</th></tr></thead>
+                    <tbody>
+                        @foreach (var bucket in Model.Portfolio.ByProduct)
+                        {
+                            <tr><td>@bucket.Key</td><td class="text-end">@bucket.PolicyCount</td><td class="text-end">@Ui.Money(bucket.AveragePremium)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">Claim queue</div>
+            <dl class="row card-body mb-0">
+                <dt class="col-sm-6">Open claims</dt><dd class="col-sm-6">@Model.ClaimQueue.OpenCount</dd>
+                <dt class="col-sm-6">Needing escalation</dt><dd class="col-sm-6">@Model.ClaimQueue.EscalationCount</dd>
+                <dt class="col-sm-6">With fraud flags</dt><dd class="col-sm-6">@Model.ClaimQueue.FlaggedCount</dd>
+                <dt class="col-sm-6">Reported late</dt><dd class="col-sm-6">@Model.ClaimQueue.LateReportedCount</dd>
+                <dt class="col-sm-6">Reserved</dt><dd class="col-sm-6">@Ui.Money(Model.ClaimQueue.TotalReserve)</dd>
+                <dt class="col-sm-6">Paid</dt><dd class="col-sm-6">@Ui.Money(Model.ClaimQueue.TotalPaid)</dd>
+            </dl>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">Renewal pipeline</div>
+    <table class="table table-sm mb-0">
+        <thead><tr><th>Policy</th><th>Holder</th><th>Ends</th><th class="text-end">Days left</th><th class="text-end">Annual premium</th><th>Renewal</th></tr></thead>
+        <tbody>
+            @foreach (var item in Model.Renewals)
+            {
+                <tr>
+                    <td><a asp-page="/Policies/Details" asp-route-id="@item.PolicyId">@item.PolicyNumber</a></td>
+                    <td>@item.HolderName</td>
+                    <td>@Ui.Date(item.Window.PolicyEnd)</td>
+                    <td class="text-end">@item.Window.DaysUntilEnd</td>
+                    <td class="text-end">@Ui.Money(item.AnnualPremium)</td>
+                    <td>@(item.AlreadyRenewed ? "Renewed" : item.Window.IsOpen ? "Window open" : "Opens " + Ui.Date(item.Window.OpensOn))</td>
+                </tr>
+            }
+            @if (Model.Renewals.Count == 0)
+            {
+                <tr><td colspan="6" class="text-center text-muted">No policies are approaching renewal.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">Recent claims</div>
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr><th>Claim</th><th>Policy</th><th>Reported</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var claim in Model.RecentClaims)
+                    {
+                        <tr>
+                            <td><a asp-page="/Claims/Details" asp-route-id="@claim.Id">@claim.ClaimNumber</a></td>
+                            <td>@claim.Policy?.PolicyNumber</td>
+                            <td>@Ui.When(claim.ReportedAt)</td>
+                            <td><span class="badge @Ui.ClaimBadge(claim.Status)">@claim.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">Recent invoices</div>
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr><th>Invoice</th><th>Policy</th><th class="text-end">Amount</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var invoice in Model.RecentInvoices)
+                    {
+                        <tr>
+                            <td>@invoice.InvoiceNumber</td>
+                            <td>@invoice.Policy?.PolicyNumber</td>
+                            <td class="text-end">@Ui.Money(invoice.Amount)</td>
+                            <td><span class="badge @Ui.InvoiceBadge(invoice.Status)">@invoice.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

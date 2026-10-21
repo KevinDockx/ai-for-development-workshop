@@ -1,0 +1,25 @@
+@page "{id:int}"
+@model ClaimHub.Admin.Pages.Claims.DeleteModel
+@{
+    var claim = Model.Claim;
+    ViewData["Title"] = "Delete " + claim.ClaimNumber;
+}
+
+<h1 class="h3 mb-3">Delete claim</h1>
+
+<div class="alert alert-danger">
+    Deleting claim <strong>@claim.ClaimNumber</strong> removes it together with its status history, documents,
+    fraud flags and payout payments. This cannot be undone.
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Claim</dt><dd class="col-sm-9">@claim.ClaimNumber</dd>
+    <dt class="col-sm-3">Status</dt><dd class="col-sm-9"><span class="badge @Ui.ClaimBadge(claim.Status)">@claim.Status</span></dd>
+    <dt class="col-sm-3">Date of loss</dt><dd class="col-sm-9">@Ui.Date(claim.DateOfLoss)</dd>
+    <dt class="col-sm-3">Paid</dt><dd class="col-sm-9">@Ui.Money(claim.PaidAmount)</dd>
+</dl>
+
+<form method="post">
+    <button type="submit" class="btn btn-danger">Delete permanently</button>
+    <a asp-page="Details" asp-route-id="@claim.Id" class="btn btn-outline-secondary">Cancel</a>
+</form>
