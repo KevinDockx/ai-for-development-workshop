@@ -1,0 +1,19 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "src\\ClaimHub.Admin\\ClaimHub.Admin.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\ClaimHub.Api\\ClaimHub.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "src\\ClaimHub.Worker\\ClaimHub.Worker.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
